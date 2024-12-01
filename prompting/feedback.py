@@ -1,3 +1,6 @@
+import os 
+import json
+import openai
 import re
 import numpy as np
 from rocobench.subtask_plan import LLMPathPlan
@@ -7,6 +10,28 @@ from rocobench.envs import MujocoSimEnv
 from transforms3d import euler, quaternions
 from rocobench.rrt_multi_arm import MultiArmRRT
 from rocobench.envs.env_utils import Pose
+from rocobench.envs import MujocoSimEnv, EnvState 
+
+assert os.path.exists("openai_key.json"), "Please put your OpenAI API key in a string in robot-collab/openai_key.json"
+OPENAI_KEY = str(json.load(open("openai_key.json")))
+openai.api_key = OPENAI_KEY
+
+# FEEDBACK_INSTRUCTION="""
+# [Feedback Instruction]
+# Follow these steps to improve [Enviornment Feedback]:
+# 1) Decompose [Enviornment Feedback] into individual feedback for each robot.
+# 2) If [Plan Passed] is False, identify each robot's contribution and penalize them individually.
+# 3) If [Plan Passed] is True, identify each robot's contribution and reward them individually.
+# """
+
+FEEDBACK_INSTRUCTION="""
+[Feedback Instruction]
+Follow these steps to improve [Enviornment Feedback]:
+1) Decompose [Enviornment Feedback] into individual feedback for each robot.
+2) Identify each robot's contribution to the task's success or failure and assign real-valued scores to them individually from 0 to 1. 0 is the lowest score and 1 is highest score.
+3) Avoid attributing an equal score to each robot. In case of failure, penalize the final agent who came up with the plan.
+4) Use any other computed values available from [Enviornment Feedback] to qualitatively determine each robot's scores. 
+"""
 
 class FeedbackManager:
     """
@@ -20,6 +45,9 @@ class FeedbackManager:
         robot_name_map: Dict[str, str] = {"panda": "Bob"}, 
         step_std_threshold: float = 0.1, # threshold for checking if the waypoint steps are evenly spaced
         max_failed_waypoints: int = 2,
+        max_tokens: int = 512,
+        temperature: float = 0,
+        llm_source: str = "gpt-4"
     ):
         self.env = env
         self.planner = planner
@@ -28,6 +56,10 @@ class FeedbackManager:
         self.robot_agent_names = [v for k, v in robot_name_map.items()] 
         self.step_std_threshold = step_std_threshold
         self.max_failed_waypoints = max_failed_waypoints
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.llm_source = llm_source
+        assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude], got {llm_source}"
     
     def get_full_path(self, llm_plan: LLMPathPlan) -> Dict[str, Pose]:
         full_path = dict()
@@ -159,7 +191,44 @@ class FeedbackManager:
             # feedback = f"{step_type} Step {step_string}: All checks passed\n"
             feedback = ""
         return all_passed, feedback
+
+    def compose_system_prompt(
+        self, 
+        plan_passed,
+        feedback
+    ) -> str:
+        feedback_desc = f"{feedback}\n [Plan Passed] is {plan_passed}\n" 
+        feedback_desc += FEEDBACK_INSTRUCTION 
+        system_prompt = f"{feedback_desc}\n" 
+        return system_prompt 
  
+    def query_once(self, system_prompt, max_query=3):
+        response = None
+        usage = None   
+        # print('======= system prompt ======= \n ', system_prompt)
+        for n in range(max_query):
+            print('querying {}th time'.format(n))
+            try:
+                response = openai.ChatCompletion.create(
+                    model=self.llm_source, 
+                    messages=[
+                        # {"role": "user", "content": ""},
+                        {"role": "system", "content": system_prompt}, 
+                    ],
+                    max_tokens=self.max_tokens, 
+                    temperature=self.temperature,
+                    )
+                usage = response['usage']
+                response = response['choices'][0]['message']["content"]
+                print('======= response ======= \n ', response)
+                print('======= usage ======= \n ', usage)
+                break
+            except:
+                print("API error, try again")
+            continue
+        # breakpoint()
+        return response, usage
+    
     def give_feedback(self, llm_plan: LLMPathPlan) -> Tuple[bool, str]:
         """
         Given a parsed LLM plan, run task validations and provide feedback if needed
@@ -198,6 +267,14 @@ class FeedbackManager:
             plan_passed = False
             feedback += f"Task Constraints:\n faild, {task_feedback}\n"
         # breakpoint()
+        system_prompt = self.compose_system_prompt(plan_passed, feedback) 
+        response, usage = self.query_once(
+            system_prompt, 
+            max_query=3,
+        )
+        feedback += f"[Individual Feedback]:\n{response}\n"
+        # print(feedback) 
+        # print(usage) 
         return plan_passed, feedback
         
 
