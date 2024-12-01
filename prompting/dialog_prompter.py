@@ -71,7 +71,7 @@ class DialogPrompter:
         self.max_calls_per_round = max_calls_per_round 
         self.temperature = temperature
         self.llm_source = llm_source
-        assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude], got {llm_source}"
+        assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude", "gpt-4o-mini", "gpt-4o"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude], got {llm_source}"
 
     def compose_system_prompt(
         self, 
