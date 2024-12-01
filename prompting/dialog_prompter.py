@@ -31,6 +31,7 @@ Each <coord> is a tuple (x,y,z) for gripper location, follow these steps to plan
     To make a path more evenly spaced, make distance between pair-wise steps similar.
         e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)] 
     If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+    Use [Individual Feedback] while re-planning, to gauge the extent of changes needed for each robot compared to the previous plans,  e.g. for a high score, fewer changes to the plan may be required for this robot, while for a low score, bigger changes to plan may be required for this robot.
 """
 
 class DialogPrompter:
