@@ -20,6 +20,12 @@ conda activate roco
 pip install mujoco==2.3.0
 pip install dm_control==1.0.8 
 ```
+
+For reference: 
+```
+conda env config vars set MUJOCO_GL=egl PYOPENGL_PLATFORM=egl
+conda deactivate && conda activate roco
+```
 **If you have M1 Macbook like me and would like to visualize the task scenes locally:**
 
 Download the macos-compatible `.dmg` file from [MuJoCo release page](https://github.com/deepmind/mujoco/releases), inside it should have a `MuJoCo.app` file that you can drag into your /Application folder, so it becomes just like other apps in your Mac. You could then open up the app and drag xml files in it. Find more informationa in the [official documentation](https://mujoco.readthedocs.io/en/latest/programming/#getting-started).
