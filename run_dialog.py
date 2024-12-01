@@ -116,6 +116,9 @@ class LLMRunner:
             robot_name_map=self.env.robot_name_map,
             step_std_threshold=self.env.waypoint_std_threshold,
             max_failed_waypoints=self.max_failed_waypoints,
+            max_tokens=1024,
+            temperature=self.temperature,
+            llm_source=llm_source,
         )
         if llm_comm_mode in ["plan", "chat"]:
             logging.warning(f'Using SingleThreadPrompter for {llm_comm_mode} mode')
