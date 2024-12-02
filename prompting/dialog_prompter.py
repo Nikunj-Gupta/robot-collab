@@ -23,15 +23,15 @@ Each <coord> is a tuple (x,y,z) for gripper location, follow these steps to plan
 1) Decide target location (e.g. an object you want to pick), and your current gripper location.
 2) Plan a list of <coord> that move smoothly from current gripper to the target location.
 3) The <coord>s must be evenly spaced between start and target.
-4) Each <coord> must not collide with other robots, and must stay away from table and objects.  
-[How to Incoporate [Enviornment Feedback] to improve plan]
+4) Each <coord> must not collide with other robots, and must stay away from table and objects.
+[How to Incoporate [Environment Feedback] to improve plan]
+    Refer suggestions in [Environment Feedback] to re-plan to choose more feasible steps in each PATH, or choose different actions.
     If IK fails, propose more feasible step for the gripper to reach. 
     If detected collision, move robot so the gripper and the inhand object stay away from the collided objects. 
     If collision is detected at a Goal Step, choose a different action.
     To make a path more evenly spaced, make distance between pair-wise steps similar.
         e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)] 
     If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
-    Use [Individual Feedback] while re-planning, to gauge the extent of changes needed for each robot compared to the previous plans,  e.g. for a high score, fewer changes to the plan may be required for this robot, while for a low score, bigger changes to plan may be required for this robot.
 """
 
 class DialogPrompter:
@@ -71,7 +71,7 @@ class DialogPrompter:
         self.max_calls_per_round = max_calls_per_round 
         self.temperature = temperature
         self.llm_source = llm_source
-        assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude", "gpt-4o-mini", "gpt-4o"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude], got {llm_source}"
+        assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude", "gpt-4o-mini", "gpt-4o"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude, gpt-4o-mini, gpt-4o], got {llm_source}"
 
     def compose_system_prompt(
         self, 
