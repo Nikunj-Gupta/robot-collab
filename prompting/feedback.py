@@ -18,19 +18,33 @@ openai.api_key = OPENAI_KEY
 
 # FEEDBACK_INSTRUCTION="""
 # [Feedback Instruction]
-# Follow these steps to improve [Enviornment Feedback]:
-# 1) Decompose [Enviornment Feedback] into individual feedback for each robot.
+# Follow these steps to improve [Environment Feedback]:
+# 1) Decompose [Environment Feedback] into individual feedback for each robot.
 # 2) If [Plan Passed] is False, identify each robot's contribution and penalize them individually.
 # 3) If [Plan Passed] is True, identify each robot's contribution and reward them individually.
 # """
 
+# FEEDBACK_INSTRUCTION="""
+# [Feedback Instruction]
+# Follow these steps to improve [Environment Feedback]:
+# 1) Decompose [Environment Feedback] into individual feedback for each robot.
+# 2) Identify each robot's contribution to the task's success or failure and assign real-valued scores to them individually from 0 to 1. 0 is the lowest score and 1 is highest score.
+# 3) Avoid attributing an equal score to each robot. In case of failure, penalize the final agent who came up with the plan.
+# 4) Use any other computed values available from [Environment Feedback] to qualitatively determine each robot's scores. 
+# """
+
 FEEDBACK_INSTRUCTION="""
 [Feedback Instruction]
-Follow these steps to improve [Enviornment Feedback]:
-1) Decompose [Enviornment Feedback] into individual feedback for each robot.
-2) Identify each robot's contribution to the task's success or failure and assign real-valued scores to them individually from 0 to 1. 0 is the lowest score and 1 is highest score.
-3) Avoid attributing an equal score to each robot. In case of failure, penalize the final agent who came up with the plan.
-4) Use any other computed values available from [Enviornment Feedback] to qualitatively determine each robot's scores. 
+Given [Environment Feedback] follow these steps to improve feedback:
+1) Clearly separate feedback for each robot.
+2) Based on separated feedback, guide each robot to improve plan.
+[How to Improve plan]
+    If IK fails, propose more feasible step for the gripper to reach.
+    If detected collision, move robot so the gripper and the inhand object stay away from the collided objects.
+    If collision is detected at a Goal Step, choose a different action.
+    To make a path more evenly spaced, make distance between pair-wise steps similar.
+        e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)]
+    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
 """
 
 class FeedbackManager:
@@ -59,7 +73,7 @@ class FeedbackManager:
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.llm_source = llm_source
-        assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude], got {llm_source}"
+        assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude", "gpt-4o-mini", "gpt-4o"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude, gpt-4o-mini, gpt-4o], got {llm_source}"
     
     def get_full_path(self, llm_plan: LLMPathPlan) -> Dict[str, Pose]:
         full_path = dict()
@@ -272,9 +286,11 @@ class FeedbackManager:
             system_prompt, 
             max_query=3,
         )
-        feedback += f"[Individual Feedback]:\n{response}\n"
-        # print(feedback) 
-        # print(usage) 
-        return plan_passed, feedback
-        
 
+        # # append Individual Feedback 
+        # feedback += f"[Individual Feedback]:\n{response}\n"
+
+        # Overwrite [Environment Feedback] with [Individual Feedback]
+        feedback = f"[Environment Feedback]:\n- Previous Plan:\n{llm_plan.parsed_proposal}\n{response}\n"
+
+        return plan_passed, feedback 
