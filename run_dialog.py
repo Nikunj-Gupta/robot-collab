@@ -412,17 +412,29 @@ def main(args):
         render_freq = 2000
     elif args.control_freq == 5:
         render_freq = 3000
-    env = env_cl(
-        render_freq=render_freq,
-        image_hw=(400,400),
-        sim_forward_steps=300,
-        error_freq=30,
-        error_threshold=1e-5,
-        randomize_init=True,
-        render_point_cloud=0,
-        render_cameras=["face_panda","face_ur5e","teaser",],
-        one_obj_each=True,
-    )
+    if args.task == "sort":
+        env = env_cl(
+            render_freq=render_freq,
+            image_hw=(400,400),
+            sim_forward_steps=300,
+            error_freq=30,
+            error_threshold=1e-5,
+            randomize_init=True,
+            render_point_cloud=0,
+            render_cameras=["face_panda","face_ur5e","teaser",]
+		)
+    else:
+        env = env_cl(
+            render_freq=render_freq,
+            image_hw=(400,400),
+            sim_forward_steps=300,
+            error_freq=30,
+            error_threshold=1e-5,
+            randomize_init=True,
+            render_point_cloud=0,
+            render_cameras=["face_panda","face_ur5e","teaser",],
+            one_obj_each=True,
+        )
     robots = env.get_sim_robots()
     if args.no_feedback:
         assert args.num_replans == 1, "no feedback mode requires num_replans=1 but longer -tsteps"

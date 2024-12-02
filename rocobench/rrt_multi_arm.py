@@ -508,7 +508,7 @@ class MultiArmRRT:
             
             qpos_str = " ".join(physics.data.qpos.astype(str))
             print(f"<key name='rrt_check' qpos='{qpos_str}'/>")
-            breakpoint()
+            #breakpoint()
            
         return bad_pairs
     
