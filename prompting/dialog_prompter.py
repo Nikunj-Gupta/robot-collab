@@ -17,6 +17,7 @@ assert os.path.exists("openai_key.json"), "Please put your OpenAI API key in a s
 OPENAI_KEY = str(json.load(open("openai_key.json")))
 openai.api_key = OPENAI_KEY
 
+# v1 (open-ended individual feedback)
 PATH_PLAN_INSTRUCTION="""
 [Path Plan Instruction]
 Each <coord> is a tuple (x,y,z) for gripper location, follow these steps to plan:
@@ -32,6 +33,71 @@ Each <coord> is a tuple (x,y,z) for gripper location, follow these steps to plan
     To make a path more evenly spaced, make distance between pair-wise steps similar.
         e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)] 
     If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+"""
+
+# v2 (scoring-based individual feedback) 
+PATH_PLAN_INSTRUCTION="""
+[Path Plan Instruction]
+Each <coord> is a tuple (x,y,z) for gripper location, follow these steps to plan:
+1) Decide target location (e.g. an object you want to pick), and your current gripper location.
+2) Plan a list of <coord> that move smoothly from current gripper to the target location.
+3) The <coord>s must be evenly spaced between start and target.
+4) Each <coord> must not collide with other robots, and must stay away from table and objects.
+[How to use scores from [Environment Feedback]]
+   If 0, robot should choose more feasible steps in PATH, or choose different actions. 
+   if 1, robot can maintain same (or similar) steps in PATH.  
+[How to Incoporate [Environment Feedback] to improve plan]
+    Refer suggestions in [Environment Feedback] to re-plan to choose more feasible steps in each PATH, or choose different actions.
+    If IK fails, propose more feasible step for the gripper to reach. 
+    If detected collision, move robot so the gripper and the inhand object stay away from the collided objects. 
+    If collision is detected at a Goal Step, choose a different action.
+    To make a path more evenly spaced, make distance between pair-wise steps similar.
+        e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)] 
+    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+"""
+
+# v3 (reward-penalty-based individual feedback)
+PATH_PLAN_INSTRUCTION="""
+[Path Plan Instruction]
+Each <coord> is a tuple (x,y,z) for gripper location, follow these steps to plan:
+1) Decide target location (e.g. an object you want to pick), and your current gripper location.
+2) Plan a list of <coord> that move smoothly from current gripper to the target location.
+3) The <coord>s must be evenly spaced between start and target.
+4) Each <coord> must not collide with other robots, and must stay away from table and objects.
+[How to use reward or penalty to improve plan]
+   Aim is to maximize reward for each robot and improve plan. A reward or penalty will be a real-value between 0.0 and 1.0.
+   If high penalty, choose significantly more feasible steps in PATH, or choose significantly different actions that increase reward.
+   If low penalty, choose more feasible steps in PATH, or choose different actions that increase reward.
+   If low reward, choose slightly more feasible steps in PATH, or choose slightly different actions that increase reward.
+   If high reward, robot can maintain same (or similar) steps in PATH and that maintain high reward.
+[How to Incoporate [Environment Feedback] and [Individual Feedback] to improve plan]
+    Refer suggestions in [Environment Feedback] to re-plan to choose more feasible steps in each PATH, or choose different actions.
+    If IK fails, propose more feasible step for the gripper to reach. 
+    If detected collision, move robot so the gripper and the inhand object stay away from the collided objects. 
+    If collision is detected at a Goal Step, choose a different action.
+    To make a path more evenly spaced, make distance between pair-wise steps similar.
+        e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)] 
+    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+    Use suggestions from [Individual Feedback] re-plan to choose more feasible steps in each PATH, or choose different actions.
+"""
+
+# [Environment Feedback] + [Individual Feedback] # TODO: update based on best-performing [Individual Feedback] 
+PATH_PLAN_INSTRUCTION="""
+[Path Plan Instruction]
+Each <coord> is a tuple (x,y,z) for gripper location, follow these steps to plan:
+1) Decide target location (e.g. an object you want to pick), and your current gripper location.
+2) Plan a list of <coord> that move smoothly from current gripper to the target location.
+3) The <coord>s must be evenly spaced between start and target.
+4) Each <coord> must not collide with other robots, and must stay away from table and objects.
+[How to Incoporate [Environment Feedback] and [Individual Feedback] to improve plan]
+    Refer suggestions in [Environment Feedback] to re-plan to choose more feasible steps in each PATH, or choose different actions.
+    If IK fails, propose more feasible step for the gripper to reach. 
+    If detected collision, move robot so the gripper and the inhand object stay away from the collided objects. 
+    If collision is detected at a Goal Step, choose a different action.
+    To make a path more evenly spaced, make distance between pair-wise steps similar.
+        e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)] 
+    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+    Use suggestions from [Individual Feedback] re-plan to choose more feasible steps in each PATH, or choose different actions.
 """
 
 class DialogPrompter:
