@@ -33,11 +33,56 @@ openai.api_key = OPENAI_KEY
 # 4) Use any other computed values available from [Environment Feedback] to qualitatively determine each robot's scores. 
 # """
 
+# v1 (open-ended individual feedback)
 FEEDBACK_INSTRUCTION="""
 [Feedback Instruction]
 Given [Environment Feedback] follow these steps to improve feedback:
 1) Clearly separate feedback for each robot.
 2) Based on separated feedback, guide each robot to improve plan.
+[How to Improve plan]
+    If IK fails, propose more feasible step for the gripper to reach.
+    If detected collision, move robot so the gripper and the inhand object stay away from the collided objects.
+    If collision is detected at a Goal Step, choose a different action.
+    To make a path more evenly spaced, make distance between pair-wise steps similar.
+        e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)]
+    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+"""
+
+# v2 (scoring-based individual feedback) 
+FEEDBACK_INSTRUCTION="""
+[Feedback Instruction]
+Given [Environment Feedback] follow these steps to improve feedback:
+1) Clearly separate feedback for each robot.
+2) Based on separated feedback, assign each robot a score of 0 or 1 to improve plan. 
+[How to use score]
+   If 0, robot should choose more feasible steps in PATH, or choose different actions. 
+   if 1, robot can maintain same (or similar) steps in PATH. 
+[How to Improve plan]
+    If IK fails, propose more feasible step for the gripper to reach.
+    If detected collision, move robot so the gripper and the inhand object stay away from the collided objects.
+    If collision is detected at a Goal Step, choose a different action.
+    To make a path more evenly spaced, make distance between pair-wise steps similar.
+        e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)]
+    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+"""
+
+# v3 (reward-penalty-based individual feedback)
+FEEDBACK_INSTRUCTION="""
+[Feedback Instruction]
+Given [Environment Feedback] follow these steps to improve feedback:
+1) Clearly separate feedback for each robot.
+2) Based on separated feedback and computations from [Environment Feedback], reward or penalize each robot a numerical real value from 0.0 to 1.0 to improve plan.
+[How to reward or penalize to improve plan]
+   Give high penalty for causing significant failures. 
+   Give low penalty for causing failures. 
+   Give low reward for causing few failures. 
+   Give high reward for successful plans or causing no failures. 
+[How to use reward or penalty to improve plan]
+   Aim is to maximize reward for each robot and improve plan.
+   If high penalty, choose significantly more feasible steps in PATH, or choose significantly different actions that increase reward.
+   If low penalty, choose more feasible steps in PATH, or choose different actions that increase reward.
+   If low reward, choose slightly more feasible steps in PATH, or choose slightly different actions that increase reward.
+   If high reward, robot can maintain same (or similar) steps in PATH and that maintain high reward.
 [How to Improve plan]
     If IK fails, propose more feasible step for the gripper to reach.
     If detected collision, move robot so the gripper and the inhand object stay away from the collided objects.
