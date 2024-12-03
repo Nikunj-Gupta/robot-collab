@@ -34,7 +34,7 @@ openai.api_key = OPENAI_KEY
 # """
 
 # v1 (open-ended individual feedback)
-FEEDBACK_INSTRUCTION="""
+v1_FEEDBACK_INSTRUCTION="""
 [Feedback Instruction]
 Given [Environment Feedback] follow these steps to improve feedback:
 1) Clearly separate feedback for each robot.
@@ -49,13 +49,13 @@ Given [Environment Feedback] follow these steps to improve feedback:
 """
 
 # v2 (scoring-based individual feedback) 
-FEEDBACK_INSTRUCTION="""
+v2_FEEDBACK_INSTRUCTION="""
 [Feedback Instruction]
 Given [Environment Feedback] follow these steps to improve feedback:
 1) Clearly separate feedback for each robot.
-2) Based on separated feedback, assign each robot a score of 0 or 1 to improve plan. 
+2) Based on separated feedback, assign each robot a score of -1, 0 or 1 to improve plan. 0 if the robots action is WAIT. 
 [How to use score]
-   If 0, robot should choose more feasible steps in PATH, or choose different actions. 
+   If -1, robot should choose more feasible steps in PATH, or choose different actions. 
    if 1, robot can maintain same (or similar) steps in PATH. 
 [How to Improve plan]
     If IK fails, propose more feasible step for the gripper to reach.
@@ -67,11 +67,11 @@ Given [Environment Feedback] follow these steps to improve feedback:
 """
 
 # v3 (reward-penalty-based individual feedback)
-FEEDBACK_INSTRUCTION="""
+v3_FEEDBACK_INSTRUCTION="""
 [Feedback Instruction]
 Given [Environment Feedback] follow these steps to improve feedback:
 1) Clearly separate feedback for each robot.
-2) Based on separated feedback and computations from [Environment Feedback], reward or penalize each robot a numerical real value from 0.0 to 1.0 to improve plan.
+2) Based on separated feedback and computations from [Environment Feedback], reward or penalize each robot a numerical real value from -1.0 to 1.0 to improve plan.
 [How to reward or penalize to improve plan]
    Give high penalty for causing significant failures. 
    Give low penalty for causing failures. 
@@ -269,8 +269,12 @@ class FeedbackManager:
         feedback
     ) -> str:
         feedback_desc = f"{feedback}\n [Plan Passed] is {plan_passed}\n" 
-        if self.feedback_type == "textual":
-            feedback_desc += FEEDBACK_INSTRUCTION
+        if self.feedback_type == "v1":
+            feedback_desc += v1_FEEDBACK_INSTRUCTION
+        elif self.feedback_type == "v2":
+            feedback_desc += v2_FEEDBACK_INSTRUCTION
+        elif self.feedback_type == "v3":
+            feedback_desc += v3_FEEDBACK_INSTRUCTION
         elif self.feedback_type == "binary":
             feedback_desc += BINARY_FEEDBACK_INSTRUCTION
         system_prompt = f"{feedback_desc}\n" 

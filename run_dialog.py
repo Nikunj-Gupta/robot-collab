@@ -188,6 +188,7 @@ class LLMRunner:
         done = False
         reward = 0
         obs = env.get_obs()
+
         for step in range(start_step, start_step + self.max_runner_steps):
 
             step_dir = os.path.join(save_dir, f"step_{step}")
@@ -337,6 +338,8 @@ class LLMRunner:
             step_dirs = natsorted(
                 glob(os.path.join(load_run, "step_*"))
             )
+            # glob doesnt load the steps in order. Hence, sort
+            step_dirs.sort()
             if len(step_dirs) == 0:
                 raise ValueError(f"Cannot find any steps in {load_run}")
                 exit()
