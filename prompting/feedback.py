@@ -89,7 +89,17 @@ Given [Environment Feedback] follow these steps to improve feedback:
     If collision is detected at a Goal Step, choose a different action.
     To make a path more evenly spaced, make distance between pair-wise steps similar.
         e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)]
-    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions."""
+
+BINARY_FEEDBACK_INSTRUCTION="""
+[Feedback Instruction]
+Given [Environment Feedback] follow these steps to improve feedback:
+1) Clearly separate feedback for each robot.
+2) Based on separated feedback, provide individual rewards to each robot -1, 0 or +1.
+[How to generate rewards]
+    If robot's action is WAIT, generate 0 reward.
+    If the robot fails to perform the stated action, provide a -1 reward based on the level of failure.
+    If the robot succeeded in performing the action, provide a +1 reward.
 """
 
 class FeedbackManager:
@@ -106,7 +116,8 @@ class FeedbackManager:
         max_failed_waypoints: int = 2,
         max_tokens: int = 512,
         temperature: float = 0,
-        llm_source: str = "gpt-4"
+        llm_source: str = "gpt-4",
+        feedback_type: str = "textual"
     ):
         self.env = env
         self.planner = planner
@@ -116,6 +127,7 @@ class FeedbackManager:
         self.step_std_threshold = step_std_threshold
         self.max_failed_waypoints = max_failed_waypoints
         self.max_tokens = max_tokens
+        self.feedback_type = feedback_type
         self.temperature = temperature
         self.llm_source = llm_source
         assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude", "gpt-4o-mini", "gpt-4o"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude, gpt-4o-mini, gpt-4o], got {llm_source}"
@@ -257,7 +269,10 @@ class FeedbackManager:
         feedback
     ) -> str:
         feedback_desc = f"{feedback}\n [Plan Passed] is {plan_passed}\n" 
-        feedback_desc += FEEDBACK_INSTRUCTION 
+        if self.feedback_type == "textual":
+            feedback_desc += FEEDBACK_INSTRUCTION
+        elif self.feedback_type == "binary":
+            feedback_desc += BINARY_FEEDBACK_INSTRUCTION
         system_prompt = f"{feedback_desc}\n" 
         return system_prompt 
  
