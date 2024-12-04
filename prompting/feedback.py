@@ -89,7 +89,12 @@ Given [Environment Feedback] follow these steps to improve feedback:
     If collision is detected at a Goal Step, choose a different action.
     To make a path more evenly spaced, make distance between pair-wise steps similar.
         e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)]
-    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions."""
+    If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+Please strictly follow the following output format, example:
+Individual Feedback for [Agent 1]:
+    [Feedback for Agent 1]
+Individual Feedback for [Agent 2]:
+    [Feedback for Agent 2]"""
 
 BINARY_FEEDBACK_INSTRUCTION="""
 [Feedback Instruction]
@@ -343,18 +348,50 @@ class FeedbackManager:
             
         else:
             plan_passed = False
-            feedback += f"Task Constraints:\n faild, {task_feedback}\n"
+            feedback += f"Task Constraints:\n failed, {task_feedback}\n"
         # breakpoint()
-        system_prompt = self.compose_system_prompt(plan_passed, feedback) 
-        response, usage = self.query_once(
-            system_prompt, 
-            max_query=3,
-        )
+        
+        feedback_dict = None
+        if self.feedback_type in ["v1", "v2", "v3"]:
+            system_prompt = self.compose_system_prompt(plan_passed, feedback) 
+            response, usage = self.query_once(
+                system_prompt, 
+                max_query=3,
+            )
 
         # # append Individual Feedback 
         # feedback += f"[Individual Feedback]:\n{response}\n"
 
         # Overwrite [Environment Feedback] with [Individual Feedback]
-        feedback = f"[Environment Feedback]:\n- Previous Plan:\n{llm_plan.parsed_proposal}\n{response}\n"
+        #feedback_dict = None
+        #if self.feedback_type in ["v1", "v2", "v3"]:
+            feedback_dict = self.parse_feedback(response, llm_plan.parsed_proposal)
+            # TODO add f"[Environment Feedback]:\n- Previous Plan:\n{llm_plan.parsed_proposal}\n{respons}\n" to each value of feedback dict
 
-        return plan_passed, feedback 
+            feedback = f"[Environment Feedback]:\n- Previous Plan:\n{llm_plan.parsed_proposal}\n{response}\n"
+        
+        #feedback_dict = None
+        #if self.feedback_type in ["v1", "v2", "v3"]:
+        #    feedback_dict = self.parse_feedback(feedback)
+        #breakpoint()
+
+        return plan_passed, feedback, feedback_dict
+
+    def parse_feedback(self, feedback: str=None, parsed_plan: str=None):
+        """
+            For each generated feedback, parse individualized feedback and return feedback per agent. If there is no individualized feedback, retry
+        """
+        agent_names = list(self.robot_name_map.values())
+        feedback_dict = dict()
+
+        feedback_split = feedback.strip().split("Individual Feedback for ")
+        feedback_split = [f.strip() for f in feedback_split if len(f.strip()) != 0]
+        feedback_split = [[f.split("\n")[0].strip(": "), "\n".join(f.split("\n")[1:]).strip()] for f in feedback_split]
+        feedback_dict = {agent_name: f"[Environment Feedback]:\n- Previous Plan:\n{parsed_proposal}\n{feedback_agent}" for agent_name, feedback_agent in feedback_split if agent_name in agent_names}
+        print(f"Robot Names: {agent_names}")
+        print(f"Feedback : {feedback}")
+        print(f"Feedback Split:\n{feedback_split}")
+        assert len(feedback_dict) == len(agent_names)
+
+        return feedback_dict
+

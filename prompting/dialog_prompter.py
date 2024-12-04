@@ -204,9 +204,12 @@ This previous response from [{final_agent}] failed to parse!: '{final_response}'
             else:
                 ready_to_execute = True
                 for j, llm_plan in enumerate(llm_plans): 
-                    ready_to_execute, env_feedback = self.feedback_manager.give_feedback(llm_plan)        
+                    ready_to_execute, env_feedback, env_feedback_dict = self.feedback_manager.give_feedback(llm_plan)        
                     if not ready_to_execute:
-                        curr_feedback = env_feedback
+                        if self.feedback_manager.feedback_type in ["v1", "v2", "v3"]:
+                            curr_feedback = env_feedback_dict
+                        else:
+                            curr_feedback = env_feedback
                         break
             plan_feedbacks.append(curr_feedback)
             tosave = [
@@ -250,13 +253,26 @@ This previous response from [{final_agent}] failed to parse!: '{final_response}'
 
         while n_calls < self.max_calls_per_round:
             for agent_name in self.robot_agent_names:
-                system_prompt = self.compose_system_prompt(
-                    obs, 
-                    agent_name,
-                    chat_history=chat_history,
-                    current_chat=agent_responses,
-                    feedback_history=feedback_history,   
-                    ) 
+
+                ######### Individual feedback #########
+                if self.feedback_manager.feedback_type in ["v1", "v2", "v3"]:
+                    system_prompt = self.compose_system_prompt(
+                            obs,
+                            agent_name,
+                            chat_history=chat_history,
+                            current_chat=agent_responses,
+                            feedback_history=[f[agent_name] for f  in feedback_history]
+                            )
+                    print(f"System prompt for agent: {agent_name}\n{system_prompt}")
+                    breakpoint()
+                else:
+                    system_prompt = self.compose_system_prompt(
+                        obs, 
+                        agent_name,
+                        chat_history=chat_history,
+                        current_chat=agent_responses,
+                        feedback_history=feedback_history,   
+                        ) 
                 
                 agent_prompt = f"You are {agent_name}, your response is:"
                 if n_calls == self.max_calls_per_round - 1:
