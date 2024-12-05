@@ -46,6 +46,11 @@ Given [Environment Feedback] follow these steps to improve feedback:
     To make a path more evenly spaced, make distance between pair-wise steps similar.
         e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)]
     If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+Please strictly follow the following output format, example:
+Individual Feedback for [Agent 1]:
+    [Feedback for Agent 1]
+Individual Feedback for [Agent 2]:
+    [Feedback for Agent 2]
 """
 
 # v2 (scoring-based individual feedback) 
@@ -64,6 +69,11 @@ Given [Environment Feedback] follow these steps to improve feedback:
     To make a path more evenly spaced, make distance between pair-wise steps similar.
         e.g. given path [(0.1, 0.2, 0.3), (0.2, 0.2. 0.3), (0.3, 0.4. 0.7)], the distance between steps (0.1, 0.2, 0.3)-(0.2, 0.2. 0.3) is too low, and between (0.2, 0.2. 0.3)-(0.3, 0.4. 0.7) is too high. You can change the path to [(0.1, 0.2, 0.3), (0.15, 0.3. 0.5), (0.3, 0.4. 0.7)]
     If a plan failed to execute, re-plan to choose more feasible steps in each PATH, or choose different actions.
+Please strictly follow the following output format, example:
+    Individual Feedback for [Agent 1]:
+        [Feedback for Agent 1]
+    Individual Feedback for [Agent 2]:
+        [Feedback for Agent 2]
 """
 
 # v3 (reward-penalty-based individual feedback)
@@ -122,7 +132,8 @@ class FeedbackManager:
         max_tokens: int = 512,
         temperature: float = 0,
         llm_source: str = "gpt-4",
-        feedback_type: str = "textual"
+        feedback_type: str = "textual",
+        is_individual: bool=False
     ):
         self.env = env
         self.planner = planner
@@ -135,6 +146,7 @@ class FeedbackManager:
         self.feedback_type = feedback_type
         self.temperature = temperature
         self.llm_source = llm_source
+        self.is_individual = is_individual
         assert llm_source in ["gpt-4", "gpt-3.5-turbo", "claude", "gpt-4o-mini", "gpt-4o"], f"llm_source must be one of [gpt4, gpt-3.5-turbo, claude, gpt-4o-mini, gpt-4o], got {llm_source}"
     
     def get_full_path(self, llm_plan: LLMPathPlan) -> Dict[str, Pose]:
@@ -349,7 +361,7 @@ class FeedbackManager:
         else:
             plan_passed = False
             feedback += f"Task Constraints:\n failed, {task_feedback}\n"
-        # breakpoint()
+        #breakpoint()
         
         feedback_dict = None
         if self.feedback_type in ["v1", "v2", "v3"]:
@@ -387,7 +399,7 @@ class FeedbackManager:
         feedback_split = feedback.strip().split("Individual Feedback for ")
         feedback_split = [f.strip() for f in feedback_split if len(f.strip()) != 0]
         feedback_split = [[f.split("\n")[0].strip(": "), "\n".join(f.split("\n")[1:]).strip()] for f in feedback_split]
-        feedback_dict = {agent_name: f"[Environment Feedback]:\n- Previous Plan:\n{parsed_proposal}\n{feedback_agent}" for agent_name, feedback_agent in feedback_split if agent_name in agent_names}
+        feedback_dict = {agent_name: f"[Environment Feedback]:\n- Previous Plan:\n{parsed_plan}\n[Individual Feedback for {agent_name}]:\n{feedback_agent}" for agent_name, feedback_agent in feedback_split if agent_name in agent_names}
         print(f"Robot Names: {agent_names}")
         print(f"Feedback : {feedback}")
         print(f"Feedback Split:\n{feedback_split}")

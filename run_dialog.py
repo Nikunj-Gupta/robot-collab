@@ -57,7 +57,8 @@ class LLMRunner:
         use_feedback: bool = False,
         temperature: float = 0.0,
         llm_source: str = "gpt4",
-        feedback_type: str = "textual"
+        feedback_type: str = "textual",
+        is_individual: int=1
         ):
         self.env = env
         self.env.reset()
@@ -120,7 +121,8 @@ class LLMRunner:
             max_tokens=1024,
             temperature=self.temperature,
             llm_source=llm_source,
-            feedback_type = feedback_type
+            feedback_type = feedback_type,
+            is_individual = True if is_individual else False
         )
         if llm_comm_mode in ["plan", "chat"]:
             logging.warning(f'Using SingleThreadPrompter for {llm_comm_mode} mode')
@@ -479,7 +481,8 @@ def main(args):
         use_feedback=(not args.no_feedback),
         temperature=args.temperature,
         llm_source=args.llm_source,
-        feedback_type=args.feedback_type
+        feedback_type=args.feedback_type,
+        is_individual=args.is_individual
     )
     runner.run(args)
 
@@ -510,6 +513,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_feedback", "-nf", action="store_true")
     parser.add_argument("--llm_source", "-llm", type=str, default="gpt-4o-mini")
     parser.add_argument("--feedback_type", "-fbt", type=str, default="textual")
+    parser.add_argument("--is_individual", "-isind", type=int, default=0)
     logging.basicConfig(level=logging.INFO)
 
     args = parser.parse_args()

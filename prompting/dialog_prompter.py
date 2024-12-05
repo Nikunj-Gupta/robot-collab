@@ -206,8 +206,10 @@ This previous response from [{final_agent}] failed to parse!: '{final_response}'
                 for j, llm_plan in enumerate(llm_plans): 
                     ready_to_execute, env_feedback, env_feedback_dict = self.feedback_manager.give_feedback(llm_plan)        
                     if not ready_to_execute:
-                        if self.feedback_manager.feedback_type in ["v1", "v2", "v3"]:
+                        if self.feedback_manager.feedback_type in ["v1", "v2", "v3"] and self.feedback_manager.is_individual:
                             curr_feedback = env_feedback_dict
+                        elif self.feedback_manager.feedback_type in ["v1", "v2", "v3"] and not self.feedback_manager.is_individual:
+                            curr_feedback = env_feedback
                         else:
                             curr_feedback = env_feedback
                         break
@@ -256,15 +258,19 @@ This previous response from [{final_agent}] failed to parse!: '{final_response}'
 
                 ######### Individual feedback #########
                 if self.feedback_manager.feedback_type in ["v1", "v2", "v3"]:
+                    print(f"\n\n============== Feedback History ===========\n\n{feedback_history}\n\n")
+                    # individualized agent feedback only if the actions are parsed properly. If not, use the feedback to generate proper instructions
+                    feedback_history_agent = [f[agent_name] if type(f)==dict else f for f in feedback_history]
+
                     system_prompt = self.compose_system_prompt(
                             obs,
                             agent_name,
                             chat_history=chat_history,
                             current_chat=agent_responses,
-                            feedback_history=[f[agent_name] for f  in feedback_history]
+                            feedback_history=feedback_history_agent
                             )
                     print(f"System prompt for agent: {agent_name}\n{system_prompt}")
-                    breakpoint()
+                    #breakpoint()
                 else:
                     system_prompt = self.compose_system_prompt(
                         obs, 
